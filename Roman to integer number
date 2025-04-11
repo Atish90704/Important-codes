@@ -1,5 +1,6 @@
 #include<bits/stdc++.h>
 using namespace std;
+
 class Solution {
     int ch[26]={0};
 public:
@@ -84,6 +85,7 @@ public:
         return num;
     }
 };
+
 int main()
 {
     Solution s;
