@@ -1,0 +1,14 @@
+//I got time limit exceeded on LeetCode
+//Container with most water, just the executing function
+
+int maxArea(int* height, int heightSize) {
+    int max=0, area, min;
+    for(int i=0;i<heightSize-1;i++){
+        for(int j=i+1;j<heightSize;j++){
+            min=height[i]<height[j]?height[i]:height[j];
+            area=min*(j-i);
+            if(area>max) max=area;
+        }
+    }
+    return max;
+}
