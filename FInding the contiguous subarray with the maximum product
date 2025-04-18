@@ -1,0 +1,14 @@
+int maxproduct(int *nums, int numsSize)
+{
+    int max=0;
+    for(int i=0;i<numsSize;i++){
+        for(int j=numsSize-1;j>=i;j--){
+            int product=1;
+            for(int k=i;k<=j;k++){
+                product*=nums[k];
+            }
+            if(product>max) max=product;
+        }
+    }
+    return max;
+}
