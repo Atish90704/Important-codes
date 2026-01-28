@@ -1,0 +1,1195 @@
+//1) offline 
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Edge {
+    int v;
+    int capacity;
+    int flow;
+    int rev;
+};
+
+vector<vector<Edge>> graph;
+vector<int> parent_v, parent_e;
+
+void addEdge(int u, int v, int cap) {
+    Edge a = {v, cap, 0, (int)graph[v].size()};
+    Edge b = {u, 0, 0, (int)graph[u].size()};
+    graph[u].push_back(a);
+    graph[v].push_back(b);
+}
+
+bool bfs(int s, int t) {
+    fill(parent_v.begin(), parent_v.end(), -1);
+    queue<int> q;
+    q.push(s);
+    parent_v[s] = s;
+
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int i = 0; i < graph[u].size(); i++) {
+            Edge &e = graph[u][i];
+            if (parent_v[e.v] == -1 && e.capacity > 0) {
+                parent_v[e.v] = u;
+                parent_e[e.v] = i;
+                if (e.v == t) return true;
+                q.push(e.v);
+            }
+        }
+    }
+    return false;
+}
+
+int edmondsKarp(int s, int t) {
+    int maxFlow = 0;
+
+    while (bfs(s, t)) {
+        int pathFlow = INT_MAX;
+
+        for (int v = t; v != s; v = parent_v[v]) {
+            int u = parent_v[v];
+            Edge &e = graph[u][parent_e[v]];
+            pathFlow = min(pathFlow, e.capacity);
+        }
+
+        for (int v = t; v != s; v = parent_v[v]) {
+            int u = parent_v[v];
+            Edge &e = graph[u][parent_e[v]];
+            e.capacity -= pathFlow;
+            graph[v][e.rev].capacity += pathFlow;
+            e.flow += pathFlow;
+            graph[v][e.rev].flow -= pathFlow;
+        }
+
+        maxFlow += pathFlow;
+    }
+    return maxFlow;
+}
+
+int main() {
+    int N, M;
+    cin >> N >> M;
+
+    graph.assign(N, vector<Edge>());
+    parent_v.resize(N);
+    parent_e.resize(N);
+
+    vector<tuple<int,int,int>> edges;
+
+    for (int i = 0; i < M; i++) {
+        int u, v, c;
+        cin >> u >> v >> c;
+        edges.push_back({u, v, c});
+        addEdge(u, v, c);
+    }
+
+    int s, t;
+    cin >> s >> t;
+
+    int maxFlow = edmondsKarp(s, t);
+    cout << maxFlow << "\n";
+
+    for (auto &[u, v, c] : edges) {
+        for (auto &e : graph[u]) {
+            if (e.v == v) {
+                cout << u << " " << v << " " << e.flow << "/" << c << "\n";
+                break;
+            }
+        }
+    }
+    return 0;
+}
+
+
+//2) offline
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Edge {
+    int v, cap, rev;
+};
+
+vector<vector<Edge>> graph;
+vector<int> level, parent_v, parent_e;
+
+void addEdge(int u, int v, int cap) {
+    Edge a = {v, cap, (int)graph[v].size()};
+    Edge b = {u, 0, (int)graph[u].size()};
+    graph[u].push_back(a);
+    graph[v].push_back(b);
+}
+
+bool bfs(int s, int t) {
+    fill(parent_v.begin(), parent_v.end(), -1);
+    queue<int> q;
+    q.push(s);
+    parent_v[s] = s;
+
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int i = 0; i < graph[u].size(); i++) {
+            Edge &e = graph[u][i];
+            if (parent_v[e.v] == -1 && e.cap > 0) {
+                parent_v[e.v] = u;
+                parent_e[e.v] = i;
+                if (e.v == t) return true;
+                q.push(e.v);
+            }
+        }
+    }
+    return false;
+}
+
+int maxFlow(int s, int t) {
+    int flow = 0;
+    while (bfs(s, t)) {
+        int f = INT_MAX;
+        for (int v = t; v != s; v = parent_v[v]) {
+            int u = parent_v[v];
+            f = min(f, graph[u][parent_e[v]].cap);
+        }
+        for (int v = t; v != s; v = parent_v[v]) {
+            int u = parent_v[v];
+            Edge &e = graph[u][parent_e[v]];
+            e.cap -= f;
+            graph[v][e.rev].cap += f;
+        }
+        flow += f;
+    }
+    return flow;
+}
+
+int main() {
+    int N, K, M;
+    cin >> N >> K >> M;
+
+    int source = N;
+    int sink = N + 1;
+    graph.assign(N + 2, vector<Edge>());
+    parent_v.resize(N + 2);
+    parent_e.resize(N + 2);
+
+    for (int i = 0; i < K; i++)
+        addEdge(source, i, 1);
+
+    for (int i = K; i < N; i++)
+        addEdge(i, sink, 1);
+
+    vector<pair<int,int>> compat;
+    for (int i = 0; i < M; i++) {
+        int u, v;
+        cin >> u >> v;
+        compat.push_back({u, v});
+        addEdge(u, v, 1);
+    }
+
+    int ans = maxFlow(source, sink);
+    cout << ans << "\n";
+
+    for (auto &[u, v] : compat) {
+        for (auto &e : graph[v]) {
+            if (e.v == u && e.cap == 1) {
+                cout << u << " " << v << "\n";
+            }
+        }
+    }
+    return 0;
+}
+
+
+
+
+
+
+//3)download amount
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Edge {
+    int to;
+    long long cap;   // 🔴 MODIFIED: use long long (capacities up to 1e9)
+    int rev;
+};
+
+int n, m;
+vector<vector<Edge>> graph;
+vector<int> parent_v, parent_e;
+
+void addEdge(int u, int v, long long cap) {
+    Edge a = {v, cap, (int)graph[v].size()};
+    Edge b = {u, 0,   (int)graph[u].size()};
+    graph[u].push_back(a);
+    graph[v].push_back(b);
+}
+
+bool bfs(int s, int t) {
+    fill(parent_v.begin(), parent_v.end(), -1);
+    queue<int> q;
+    q.push(s);
+    parent_v[s] = s;
+
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int i = 0; i < graph[u].size(); i++) {
+            Edge &e = graph[u][i];
+            if (parent_v[e.to] == -1 && e.cap > 0) {
+                parent_v[e.to] = u;
+                parent_e[e.to] = i;
+                if (e.to == t) return true;
+                q.push(e.to);
+            }
+        }
+    }
+    return false;
+}
+
+long long edmondsKarp(int s, int t) {
+    long long maxFlow = 0;   // 🔴 MODIFIED: long long
+
+    while (bfs(s, t)) {
+        long long pathFlow = LLONG_MAX;  // 🔴 MODIFIED
+
+        for (int v = t; v != s; v = parent_v[v]) {
+            int u = parent_v[v];
+            Edge &e = graph[u][parent_e[v]];
+            pathFlow = min(pathFlow, e.cap);
+        }
+
+        for (int v = t; v != s; v = parent_v[v]) {
+            int u = parent_v[v];
+            Edge &e = graph[u][parent_e[v]];
+            e.cap -= pathFlow;
+            graph[v][e.rev].cap += pathFlow;
+        }
+
+        maxFlow += pathFlow;
+    }
+    return maxFlow;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    cin >> n >> m;
+    graph.assign(n + 1, {});
+    parent_v.resize(n + 1);
+    parent_e.resize(n + 1);
+
+    for (int i = 0; i < m; i++) {
+        int a, b;
+        long long c;
+        cin >> a >> b >> c;
+        addEdge(a, b, c);   // 🔴 Directed edge (IMPORTANT)
+    }
+
+    cout << edmondsKarp(1, n) << "\n";
+    return 0;
+}
+
+
+
+
+
+//4)online b1/b2
+
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Edge {
+    int to;
+    long long cap;
+    int rev;
+};
+
+vector<vector<Edge>> graph;
+vector<int> parent_v, parent_e;
+
+void addEdge(int u, int v, long long cap) {
+    Edge a = {v, cap, (int)graph[v].size()};
+    Edge b = {u, 0,   (int)graph[u].size()};
+    graph[u].push_back(a);
+    graph[v].push_back(b);
+}
+
+bool bfs(int s, int t) {
+    fill(parent_v.begin(), parent_v.end(), -1);
+    queue<int> q;
+    q.push(s);
+    parent_v[s] = s;
+
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int i = 0; i < graph[u].size(); i++) {
+            Edge &e = graph[u][i];
+            if (parent_v[e.to] == -1 && e.cap > 0) {
+                parent_v[e.to] = u;
+                parent_e[e.to] = i;
+                if (e.to == t) return true;
+                q.push(e.to);
+            }
+        }
+    }
+    return false;
+}
+
+long long edmondsKarp(int s, int t) {
+    long long flow = 0;
+
+    while (bfs(s, t)) {
+        long long f = LLONG_MAX;
+
+        for (int v = t; v != s; v = parent_v[v]) {
+            int u = parent_v[v];
+            f = min(f, graph[u][parent_e[v]].cap);
+        }
+
+        for (int v = t; v != s; v = parent_v[v]) {
+            int u = parent_v[v];
+            Edge &e = graph[u][parent_e[v]];
+            e.cap -= f;
+            graph[v][e.rev].cap += f;
+        }
+
+        flow += f;
+    }
+    return flow;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    int N, M;
+    cin >> N >> M;
+
+    vector<tuple<int,int,long long>> edges;
+    for (int i = 0; i < M; i++) {
+        int u, v;
+        long long c;
+        cin >> u >> v >> c;
+        edges.push_back({u, v, c});
+    }
+
+    int P;
+    cin >> P;
+
+    vector<tuple<int,int,long long>> proposals(P);
+    for (int i = 0; i < P; i++) {
+        cin >> get<0>(proposals[i])
+            >> get<1>(proposals[i])
+            >> get<2>(proposals[i]);
+    }
+
+    // 🔴 MODIFIED: compute base flow first
+    graph.assign(N + 1, {});
+    parent_v.resize(N + 1);
+    parent_e.resize(N + 1);
+
+    for (auto &[u, v, c] : edges)
+        addEdge(u, v, c);
+
+    long long baseFlow = edmondsKarp(1, N);
+
+    vector<int> answer;
+
+    // 🔴 MODIFIED: try each proposal independently
+    for (int i = 0; i < P; i++) {
+        graph.assign(N + 1, {});  // rebuild graph fresh
+
+        for (auto &[u, v, c] : edges)
+            addEdge(u, v, c);
+
+        auto &[u, v, c] = proposals[i];
+        addEdge(u, v, c);  // 🔴 ADD ONE PROPOSED FLYOVER
+
+        long long newFlow = edmondsKarp(1, N);
+
+        if (newFlow > baseFlow)
+            answer.push_back(i + 1);  // 🔴 1-based index
+    }
+
+    if (answer.empty()) {
+        cout << "None\n";
+    } else {
+        for (int x : answer)
+            cout << x << " ";
+        cout << "\n";
+    }
+
+    return 0;
+}
+
+
+
+
+
+
+
+
+//5) online c1/c2
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Edge {
+    int to;
+    int cap;
+    int rev;
+};
+
+vector<vector<Edge>> graph;
+vector<int> parent_v, parent_e;
+
+void addEdge(int u, int v, int cap) {
+    Edge a = {v, cap, (int)graph[v].size()};
+    Edge b = {u, 0,   (int)graph[u].size()};
+    graph[u].push_back(a);
+    graph[v].push_back(b);
+}
+
+bool bfs(int s, int t) {
+    fill(parent_v.begin(), parent_v.end(), -1);
+    queue<int> q;
+    q.push(s);
+    parent_v[s] = s;
+
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int i = 0; i < graph[u].size(); i++) {
+            Edge &e = graph[u][i];
+            if (parent_v[e.to] == -1 && e.cap > 0) {
+                parent_v[e.to] = u;
+                parent_e[e.to] = i;
+                if (e.to == t) return true;
+                q.push(e.to);
+            }
+        }
+    }
+    return false;
+}
+
+int edmondsKarp(int s, int t) {
+    int flow = 0;
+    while (bfs(s, t)) {
+        int f = INT_MAX;
+
+        for (int v = t; v != s; v = parent_v[v]) {
+            int u = parent_v[v];
+            f = min(f, graph[u][parent_e[v]].cap);
+        }
+
+        for (int v = t; v != s; v = parent_v[v]) {
+            int u = parent_v[v];
+            Edge &e = graph[u][parent_e[v]];
+            e.cap -= f;
+            graph[v][e.rev].cap += f;
+        }
+        flow += f;
+    }
+    return flow;
+}
+
+int main() {
+    int N, M;
+    cin >> N >> M;
+
+    // 🔴 MODIFIED: node splitting → total nodes = 2*N
+    int S = 1;
+    int T = 2 * N;
+
+    graph.assign(2 * N + 1, {});
+    parent_v.resize(2 * N + 1);
+    parent_e.resize(2 * N + 1);
+
+    auto in = [&](int x) { return 2 * x - 1; };
+    auto out = [&](int x) { return 2 * x; };
+
+    // 🔴 MODIFIED: vertex capacity = 1 (except Start & Finish)
+    for (int i = 1; i <= N; i++) {
+        if (i == 1 || i == N)
+            addEdge(in(i), out(i), INT_MAX);  // indestructible
+        else
+            addEdge(in(i), out(i), 1);        // collapses after 1 use
+    }
+
+    // 🔴 MODIFIED: each edge has capacity = 1
+    for (int i = 0; i < M; i++) {
+        int u, v;
+        cin >> u >> v;
+        addEdge(out(u), in(v), 1);
+    }
+
+    cout << edmondsKarp(out(1), in(N)) << "\n";
+    return 0;
+}
+
+
+
+
+
+
+//6) variation boy girl pair matching
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Edge {
+    int to, cap, rev;
+};
+
+vector<vector<Edge>> graph;
+vector<int> parent_v, parent_e;
+
+void addEdge(int u, int v, int cap) {
+    Edge a = {v, cap, (int)graph[v].size()};
+    Edge b = {u, 0,   (int)graph[u].size()};
+    graph[u].push_back(a);
+    graph[v].push_back(b);
+}
+
+bool bfs(int s, int t) {
+    fill(parent_v.begin(), parent_v.end(), -1);
+    queue<int> q;
+    q.push(s);
+    parent_v[s] = s;
+
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int i = 0; i < graph[u].size(); i++) {
+            Edge &e = graph[u][i];
+            if (parent_v[e.to] == -1 && e.cap > 0) {
+                parent_v[e.to] = u;
+                parent_e[e.to] = i;
+                if (e.to == t) return true;
+                q.push(e.to);
+            }
+        }
+    }
+    return false;
+}
+
+int edmondsKarp(int s, int t) {
+    int flow = 0;
+    while (bfs(s, t)) {
+        int f = INT_MAX;
+
+        for (int v = t; v != s; v = parent_v[v]) {
+            int u = parent_v[v];
+            f = min(f, graph[u][parent_e[v]].cap);
+        }
+
+        for (int v = t; v != s; v = parent_v[v]) {
+            int u = parent_v[v];
+            Edge &e = graph[u][parent_e[v]];
+            e.cap -= f;
+            graph[v][e.rev].cap += f;
+        }
+        flow += f;
+    }
+    return flow;
+}
+
+int main() {
+    int n, m, k;
+    cin >> n >> m >> k;
+
+    /* 🔴 MODIFIED: node indexing */
+    int SRC = 0;
+    int BOY_START = 1;
+    int GIRL_START = BOY_START + n;
+    int SINK = GIRL_START + m;
+
+    graph.assign(SINK + 1, {});
+    parent_v.resize(SINK + 1);
+    parent_e.resize(SINK + 1);
+
+    /* 🔴 MODIFIED: Source → Boys (capacity = 1) */
+    for (int i = 0; i < n; i++)
+        addEdge(SRC, BOY_START + i, 1);
+
+    /* 🔴 MODIFIED: Girls → Sink (capacity = 1) */
+    for (int i = 0; i < m; i++)
+        addEdge(GIRL_START + i, SINK, 1);
+
+    vector<pair<int,int>> pairs;
+
+    /* 🔴 MODIFIED: Boy → Girl edges (capacity = 1) */
+    for (int i = 0; i < k; i++) {
+        int a, b;
+        cin >> a >> b;
+        --a; --b;
+        addEdge(BOY_START + a, GIRL_START + b, 1);
+        pairs.push_back({a, b});
+    }
+
+    int maxMatch = edmondsKarp(SRC, SINK);
+    cout << maxMatch << "\n";
+
+    /* 🔴 MODIFIED: extract matching from residual graph */
+    for (int i = 0; i < n; i++) {
+        for (auto &e : graph[BOY_START + i]) {
+            if (e.to >= GIRL_START && e.to < GIRL_START + m && e.cap == 0) {
+                cout << i + 1 << " " << (e.to - GIRL_START + 1) << "\n";
+            }
+        }
+    }
+}
+
+
+
+
+
+//7)min cut edges
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Edge {
+    int to, cap, rev;
+};
+
+vector<vector<Edge>> graph;
+vector<int> parent_v, parent_e;
+vector<bool> visited;
+
+void addEdge(int u, int v, int cap) {
+    Edge a = {v, cap, (int)graph[v].size()};
+    Edge b = {u, cap, (int)graph[u].size()}; 
+    /* 🔴 MODIFIED: undirected street → reverse edge ALSO has cap = 1 */
+
+    graph[u].push_back(a);
+    graph[v].push_back(b);
+}
+
+bool bfs(int s, int t) {
+    fill(parent_v.begin(), parent_v.end(), -1);
+    queue<int> q;
+    q.push(s);
+    parent_v[s] = s;
+
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int i = 0; i < graph[u].size(); i++) {
+            Edge &e = graph[u][i];
+            if (parent_v[e.to] == -1 && e.cap > 0) {
+                parent_v[e.to] = u;
+                parent_e[e.to] = i;
+                if (e.to == t) return true;
+                q.push(e.to);
+            }
+        }
+    }
+    return false;
+}
+
+int edmondsKarp(int s, int t) {
+    int flow = 0;
+    while (bfs(s, t)) {
+        int f = INT_MAX;
+        for (int v = t; v != s; v = parent_v[v]) {
+            int u = parent_v[v];
+            f = min(f, graph[u][parent_e[v]].cap);
+        }
+        for (int v = t; v != s; v = parent_v[v]) {
+            int u = parent_v[v];
+            Edge &e = graph[u][parent_e[v]];
+            e.cap -= f;
+            graph[v][e.rev].cap += f;
+        }
+        flow += f;
+    }
+    return flow;
+}
+
+/* 🔴 MODIFIED: DFS to find reachable nodes after max-flow */
+void dfs(int u) {
+    visited[u] = true;
+    for (auto &e : graph[u]) {
+        if (e.cap > 0 && !visited[e.to])
+            dfs(e.to);
+    }
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    graph.assign(n + 1, {});
+    parent_v.resize(n + 1);
+    parent_e.resize(n + 1);
+    visited.resize(n + 1);
+
+    vector<pair<int,int>> streets;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        addEdge(u, v, 1);  
+        /* 🔴 MODIFIED: each street has capacity = 1 */
+        streets.push_back({u, v});
+    }
+
+    int minCut = edmondsKarp(1, n);
+    cout << minCut << "\n";
+
+    /* 🔴 MODIFIED: find reachable nodes in residual graph */
+    fill(visited.begin(), visited.end(), false);
+    dfs(1);
+
+    /* 🔴 MODIFIED: edges crossing S → T are min-cut edges */
+    for (auto &[u, v] : streets) {
+        if (visited[u] && !visited[v] || visited[v] && !visited[u]) {
+            cout << u << " " << v << "\n";
+        }
+    }
+}
+
+
+
+
+
+//8) maximum number of edge disjoint paths
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Edge {
+    int to, cap, flow, rev;
+};
+
+vector<vector<Edge>> graph;
+vector<int> parent_v, parent_e;
+
+void addEdge(int u, int v) {
+    Edge a = {v, 1, 0, (int)graph[v].size()};
+    Edge b = {u, 0, 0, (int)graph[u].size()};
+    /* 🔴 MODIFIED: capacity = 1 (each teleporter usable once) */
+
+    graph[u].push_back(a);
+    graph[v].push_back(b);
+}
+
+bool bfs(int s, int t) {
+    fill(parent_v.begin(), parent_v.end(), -1);
+    queue<int> q;
+    q.push(s);
+    parent_v[s] = s;
+
+    while (!q.empty()) {
+        int u = q.front(); q.pop();
+        for (int i = 0; i < graph[u].size(); i++) {
+            Edge &e = graph[u][i];
+            if (parent_v[e.to] == -1 && e.cap > 0) {
+                parent_v[e.to] = u;
+                parent_e[e.to] = i;
+                if (e.to == t) return true;
+                q.push(e.to);
+            }
+        }
+    }
+    return false;
+}
+
+int edmondsKarp(int s, int t) {
+    int flow = 0;
+    while (bfs(s, t)) {
+        int f = INT_MAX;
+        for (int v = t; v != s; v = parent_v[v]) {
+            int u = parent_v[v];
+            f = min(f, graph[u][parent_e[v]].cap);
+        }
+        for (int v = t; v != s; v = parent_v[v]) {
+            int u = parent_v[v];
+            Edge &e = graph[u][parent_e[v]];
+            e.cap -= f;
+            graph[v][e.rev].cap += f;
+            e.flow += f;
+            graph[v][e.rev].flow -= f;
+        }
+        flow += f;
+    }
+    return flow;
+}
+
+/* 🔴 MODIFIED: extract one used path from flow graph */
+vector<int> extractPath(int s, int t) {
+    vector<int> path;
+    int u = s;
+    path.push_back(u);
+
+    while (u != t) {
+        for (auto &e : graph[u]) {
+            if (e.flow == 1) {
+                e.flow = 0;  // consume this path
+                u = e.to;
+                path.push_back(u);
+                break;
+            }
+        }
+    }
+    return path;
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    graph.assign(n + 1, {});
+    parent_v.resize(n + 1);
+    parent_e.resize(n + 1);
+
+    for (int i = 0; i < m; i++) {
+        int a, b;
+        cin >> a >> b;
+        addEdge(a, b);
+    }
+
+    int maxDays = edmondsKarp(1, n);
+    cout << maxDays << "\n";
+
+    /* 🔴 MODIFIED: print each disjoint path */
+    for (int i = 0; i < maxDays; i++) {
+        vector<int> path = extractPath(1, n);
+        cout << path.size() << "\n";
+        for (int x : path) cout << x << " ";
+        cout << "\n";
+    }
+}
+
+
+
+
+
+
+
+//Other variations 
+
+I’ll reuse the same Edmonds–Karp template you already mastered.
+
+
+---
+
+🔁 Variation 9 — Vertex-Disjoint Paths
+
+📘 Problem
+
+Find the maximum number of vertex-disjoint paths from 1 → N (except source and sink).
+
+
+---
+
+🧠 Trick (IMPORTANT)
+
+Max-flow only handles edges, not vertices.
+
+Solution: Vertex Splitting
+
+For every vertex v:
+
+v_in → v_out (capacity = 1)
+
+All original edges:
+
+u_out → v_in (capacity = ∞)
+
+
+---
+
+🔧 Modified Code (only changes commented)
+
+// 🔴 CHANGED: vertex splitting
+int vin(int v) { return v * 2; }
+int vout(int v) { return v * 2 + 1; }
+
+// 🔴 CHANGED: capacity 1 for internal vertex edge
+addEdge(vin(v), vout(v), (v == 1 || v == n) ? INF : 1);
+
+// 🔴 CHANGED: original edge mapped to out→in
+addEdge(vout(u), vin(v), INF);
+
+
+---
+
+🧠 Result
+
+Max flow = max vertex-disjoint paths
+
+Standard Edmonds–Karp works unchanged
+
+
+
+---
+
+🔁 Variation 10 — Minimum Vertex Cut
+
+> Remove minimum vertices to disconnect 1 from N
+
+
+
+
+---
+
+🧠 Key Insight
+
+Vertex-cut = min-cut in vertex-split graph
+
+Capacity of vertex edge = 1
+
+
+
+---
+
+🔧 Code Change
+
+// 🔴 CHANGED: after max-flow
+// BFS on residual graph → reachable nodes
+// Any (v_in → v_out) cut edge is a removed vertex
+
+
+---
+
+🧠 Output
+
+Vertices where:
+
+v_in reachable && v_out NOT reachable
+
+
+---
+
+🔁 Variation 11 — Edge-Disjoint Cycles Through Source
+
+📘 Problem
+
+How many edge-disjoint cycles pass through node 1?
+
+
+---
+
+🧠 Trick
+
+Split node 1 into 1_in → 1_out (capacity = ∞)
+
+Add super-source S
+
+Connect 1_out → S
+
+Connect S → 1_in
+
+
+
+---
+
+🔧 Key Changes
+
+// 🔴 CHANGED: add super source
+addEdge(S, vin(1), INF);
+addEdge(vout(1), S, INF);
+
+
+---
+
+🧠 Result
+
+Max flow = number of cycles through 1
+
+
+
+---
+
+🔁 Variation 12 — Maximum Number of Internally Node-Disjoint Paths Between Any Two Nodes
+
+Same as Variation 9, but:
+
+Arbitrary s and t
+
+Exclude them from capacity limit
+
+
+// 🔴 CHANGED
+capacity = (v == s || v == t) ? INF : 1;
+
+
+---
+
+🔁 Variation 13 — Can k People Escape? (Decision Problem)
+
+📘 Problem
+
+Can at least k people go from 1 → N?
+
+
+---
+
+🧠 Simple
+
+Just compute max flow and check:
+
+// 🔴 CHANGED
+if (maxFlow >= k) cout << "YES";
+else cout << "NO";
+
+
+---
+
+🔁 Variation 14 — Maximum Flow with Mandatory Edge
+
+📘 Problem
+
+Check if max flow must use edge (u, v)
+
+
+---
+
+🧠 Trick
+
+1. Compute normal max flow = F
+
+
+2. Force edge (u,v) capacity = 0
+
+
+3. Recompute max flow = F2
+
+
+
+// 🔴 CHANGED
+if (F2 < F) edge_is_mandatory = true;
+
+
+---
+
+🔁 Variation 15 — Best Single Edge to Remove to Minimize Flow
+
+📘 Problem
+
+Which single edge removal hurts max-flow the most?
+
+
+---
+
+🧠 Brute but valid
+
+For every edge:
+
+1. Temporarily remove it
+
+
+2. Compute flow
+
+
+3. Pick min result
+
+
+
+// 🔴 CHANGED
+best = min(best, newFlow);
+
+
+---
+
+🔁 Variation 16 — Time-Expanded Network (Day-by-Day Flow)
+
+📘 Problem
+
+Each edge can be used once per day
+What’s max people in D days?
+
+
+---
+
+🧠 Trick
+
+Create layers:
+
+node(v, day)
+
+// 🔴 CHANGED
+addEdge(v(day), v(day+1), INF);
+addEdge(u(day), v(day+1), cap);
+
+
+---
+
+🔁 Variation 17 — Maximum Matching in DAG
+
+📘 Problem
+
+Match tasks in DAG so no conflicts
+
+
+---
+
+🧠 Trick
+
+Left copy → Right copy
+
+Edges represent valid transitions
+
+
+// 🔴 CHANGED
+addEdge(u_left, v_right, 1);
+
+
+---
+
+🔁 Variation 18 — Minimum Path Cover in DAG
+
+📘 Fact
+
+min path cover = N - max matching
+
+// 🔴 CHANGED
+answer = N - maxFlow;
+
+
+---
+
+🔁 Variation 19 — Maximum Number of Edge-Disjoint Spanning Trees
+
+Advanced but beautiful.
+
+// 🔴 CHANGED
+capacity(edge) = 1
+
+Flow = number of trees.
+
+
+---
+
+🔁 Variation 20 — Flow with Lower Bounds
+
+Each edge has:
+
+L ≤ flow ≤ U
+
+
+---
+
+🧠 Trick
+
+Transform graph with super source/sink.
+
+// 🔴 CHANGED
+addEdge(S, v, demand[v]);
+addEdge(u, T, -demand[u]);
+
+
+---
+
+🎯 Final Summary
+
+You now know how EVERY flow problem works:
+
+Requirement	Trick
+
+Edge once	capacity = 1
+Vertex once	vertex split
+Paths	flow decomposition
+Cut	residual BFS
+Matching	bipartite flow
+Disjoint	capacities
+Constraints	graph modeling
+
+
+
+---
+
+ fr
