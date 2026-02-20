@@ -1,0 +1,27 @@
+CREATE TABLE PositionPenalty (
+    PositionPenaltyID SERIAL PRIMARY KEY,
+    FromPosition VARCHAR(10) REFERENCES Positions(PositionCode),
+    ToPosition VARCHAR(10) REFERENCES Positions(PositionCode),
+    Penalty DECIMAL(3,2) DEFAULT 1.0,
+    UNIQUE(FromPosition, ToPosition)
+);
+
+INSERT INTO PositionPenalty (FromPosition, ToPosition, Penalty) VALUES
+    ('ST', 'CAM', 0.9),
+    ('ST', 'CM', 0.7),
+    ('ST', 'LM', 0.6),
+    ('ST', 'RM', 0.6),
+    ('CAM', 'CM', 0.95),
+    ('CAM', 'LM', 0.85),
+    ('CAM', 'RM', 0.85),
+    ('CM', 'CAM', 0.9),
+    ('CM', 'LM', 0.9),
+    ('CM', 'RM', 0.9),
+    ('CB', 'LB', 0.95),
+    ('CB', 'RB', 0.95),
+    ('CB', 'CDM', 0.85),
+    ('LB', 'CB', 0.85),
+    ('RB', 'CB', 0.85),
+    ('GK', 'CB', 0.3),
+    ('GK', 'LB', 0.3),
+    ('GK', 'RB', 0.3);
