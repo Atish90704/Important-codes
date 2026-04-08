@@ -1,0 +1,103 @@
+//bfs
+#include <iostream>
+#include <vector>
+#include <queue>
+
+void bfs(int start_node, const std::vector<std::vector<int>>& adj) {
+    std::vector<bool> visited(adj.size(), false);
+    std::queue<int> q;
+
+    visited[start_node] = true;
+    q.push(start_node);
+
+    while (!q.empty()) {
+        int curr = q.front();
+        q.pop();
+        std::cout << curr << " "; // Process node
+
+        for (int neighbor : adj[curr]) {
+            if (!visited[neighbor]) {
+                visited[neighbor] = true;
+                q.push(neighbor);
+            }
+        }
+    }
+}
+
+
+
+
+
+//dfs
+#include <iostream>
+#include <vector>
+
+void dfsRecursive(int node, const std::vector<std::vector<int>>& adj, std::vector<bool>& visited) {
+    visited[node] = true;
+    std::cout << node << " "; // Process node
+
+    for (int neighbor : adj[node]) {
+        if (!visited[neighbor]) {
+            dfsRecursive(neighbor, adj, visited);
+        }
+    }
+}
+
+
+
+
+
+//topSort bfs
+#include <vector>
+#include <queue>
+
+std::vector<int> topoSortKahn(int V, const std::vector<std::vector<int>>& adj) {
+    std::vector<int> in_degree(V, 0);
+    for (int i = 0; i < V; i++) {
+        for (int neighbor : adj[i]) in_degree[neighbor]++;
+    }
+
+    std::queue<int> q;
+    for (int i = 0; i < V; i++) {
+        if (in_degree[i] == 0) q.push(i);
+    }
+
+    std::vector<int> topo_order;
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        topo_order.push_back(u);
+
+        for (int v : adj[u]) {
+            if (--in_degree[v] == 0) q.push(v);
+        }
+    }
+    return topo_order; // If size < V, a cycle exists
+}
+
+
+
+
+
+//topSort dfs
+#include <vector>
+#include <stack>
+#include <algorithm>
+
+void topoDFS(int u, const std::vector<std::vector<int>>& adj, std::vector<bool>& visited, std::vector<int>& order) {
+    visited[u] = true;
+    for (int v : adj[u]) {
+        if (!visited[v]) topoDFS(v, adj, visited, order);
+    }
+    order.push_back(u); // Add to order after exploring all descendants
+}
+
+std::vector<int> getTopoOrder(int V, const std::vector<std::vector<int>>& adj) {
+    std::vector<bool> visited(V, false);
+    std::vector<int> order;
+    for (int i = 0; i < V; i++) {
+        if (!visited[i]) topoDFS(i, adj, visited, order);
+    }
+    std::reverse(order.begin(), order.end()); // Final order is reverse of finish times
+    return order;
+}
